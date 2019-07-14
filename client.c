@@ -5,13 +5,14 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 
+#define BUF_SIZE 1024
 void error_handling(char* message);
 
 int main(int argc,char*argv[])
 {
     int sock;
     struct sockaddr_in serv_addr;
-    char message[30];
+    char message[BUF_SIZE];
     int idx = 0,read_len = 0;
     int str_len = 0;
 
@@ -36,19 +37,34 @@ int main(int argc,char*argv[])
     {
         error_handling("connect() error");
     }
+    else
+    {
+        puts("Connect......");
+    }
+    
 
-    while (read_len = read(sock,&message[idx++],1))
+    // while (read_len = read(sock,&message[idx++],1))
+    // {
+    //     if(-1 == read_len)
+    // {
+    //     error_handling("read() error");
+    // }
+    //     str_len +=read_len;
+    // }
+    while (1)
     {
-        if(-1 == read_len)
-    {
-        error_handling("read() error");
+        fputs("Input message(Q to quit): ",stdout);
+        fgets(message,BUF_SIZE,stdin);
+        
+        if(!strcmp(message,"q\n")||!strcmp(message,"Q\n"))
+        {
+            break;
+        }
+        write(sock,message,strlen(message));
+        str_len = read(sock,message,BUF_SIZE-1);
+        message[BUF_SIZE]=0;
+        printf("Message from server: %s",message);
     }
-        str_len +=read_len;
-    }
-    
-    
-    printf("%s\n",message);
-    printf("%d\n",str_len);
     close(sock);
 
     return 0;
