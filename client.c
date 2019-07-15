@@ -5,14 +5,17 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 
-#define BUF_SIZE 1024
+#define BUFF_SIZE 30
+
 void error_handling(char* message);
+void read_routine(int sock,char* buff);
+void write_routine(int sock,char* buff);
 
 int main(int argc,char*argv[])
 {
     int sock;
     struct sockaddr_in serv_addr;
-    char message[BUF_SIZE];
+    char message[BUFF_SIZE];
     int idx = 0,read_len = 0;
     int str_len = 0;
 
@@ -37,34 +40,13 @@ int main(int argc,char*argv[])
     {
         error_handling("connect() error");
     }
-    else
-    {
-        puts("Connect......");
-    }
-    
 
-    // while (read_len = read(sock,&message[idx++],1))
-    // {
-    //     if(-1 == read_len)
-    // {
-    //     error_handling("read() error");
-    // }
-    //     str_len +=read_len;
-    // }
-    while (1)
-    {
-        fputs("Input message(Q to quit): ",stdout);
-        fgets(message,BUF_SIZE,stdin);
-        
-        if(!strcmp(message,"q\n")||!strcmp(message,"Q\n"))
-        {
-            break;
-        }
-        write(sock,message,strlen(message));
-        str_len = read(sock,message,BUF_SIZE-1);
-        message[BUF_SIZE]=0;
-        printf("Message from server: %s",message);
-    }
+    pid_t pid = fork();
+    if(0 == pid)
+        write_routine(sock,message);
+    else
+        read_routine(sock,message);
+
     close(sock);
 
     return 0;
@@ -75,4 +57,30 @@ void error_handling(char* message)
     fputs(message,stderr);
     fputc('\n',stderr);
     exit(1);
+}
+
+void read_routine(int sock,char* buff)
+{
+    while(1)
+    {
+        int str_len = read(sock,buff,BUFF_SIZE);
+        if(0 == str_len)
+            return;
+        buff[str_len] = 0;
+        printf("Message from server: %s\n",buff);
+    }
+}
+
+void write_routine(int sock,char* buff)
+{
+    while(1)
+    {
+        fgets(buff,BUFF_SIZE,stdin);
+        if(!strcmp(buff,"q\n")||!strcmp(buff,"Q\n"))
+        {
+            shutdown(sock,SHUT_WR);
+            return;
+        }
+        write(sock,buff,strlen(buff));
+    }
 }
